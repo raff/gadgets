@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<Module>
+  <ModulePrefs title="GMail New Messages" 
+  	title_url="https://mail.google.com/mail/"
+  	author="Raffaele Sena" author_email="raff367@gmail.com" 
+  	scrolling="true">
+    <Require feature="opensocial-0.8" />
+    <Require feature="locked-domain" />
+    <OAuth>
+      <Service name="google">
+        <Access url="https://www.google.com/accounts/OAuthGetAccessToken" method="GET" /> 
+        <Request url="https://www.google.com/accounts/OAuthGetRequestToken?scope=https://mail.google.com/mail/feed/atom" method="GET" /> 
+        <Authorization url="https://www.google.com/accounts/OAuthAuthorizeToken?oauth_callback=http://oauth.gmodules.com/gadgets/oauthcallback" /> 
+      </Service>
+    </OAuth>
+  </ModulePrefs>
+  <UserPref name="show_date" display_name="Show Dates?" datatype="bool" default_value="true" />
+  <UserPref name="num_entries" display_name="Number of Entries:" default_value="10" />
+  <UserPref name="show_summ" display_name="Show Summaries?" datatype="bool" default_value="false" />
+  <Content type="html">
+  <![CDATA[ 
+ 
+  <!-- shindig oauth popup handling code -->
+  <script src="http://aromatic.org/google/popup.js"></script>
+
+  <style>
+  #main {
+    margin: 0px;
+    padding: 0px;
+    font-size: small;
+  }
+
+  .title {
+    font-weight: bold;
+  }
+
+  a, a:link, a:visited, a:hover, a:active {
+    text-decoration: none;
+    color: #000;
+  }
+
+  ul {
+  list-style-type: none;
+    margin: 0;
+    padding: 0;
+   }
+
+  li {
+    border-bottom: dotted 1px;
+    padding-bottom: 2px;
+    padding-left: 3px;
+  }
+  </style>
+
+  <div id="main" style="display: none">
+    <ul class="block-list" id="list"></ul>
+  </div>
+
+  <div id="approval" style="display: none">
+    <img src="http://gadget-doc-examples.googlecode.com/svn/trunk/images/new.gif">
+    <a href="#" id="personalize">Personalize this gadget</a>
+  </div>
+
+  <div id="waiting" style="display: none">
+    Please click
+    <a href="#" id="approvaldone">I've approved access</a>
+    once you've approved access to your data.
+  </div>
+
+  <script type="text/javascript">
+    var prefs = new gadgets.Prefs();
+    var showdate = prefs.getBool("show_date");
+    var entries = prefs.getInt("num_entries");
+    var summaries = prefs.getBool("show_summ");
+
+	// display selected section
+    function showOneSection(toshow) {
+      var sections = [ 'main', 'approval', 'waiting' ];
+      for (var i=0; i < sections.length; ++i) {
+        var s = sections[i];
+        var el = document.getElementById(s);
+        if (s === toshow) {
+          el.style.display = "block";
+        } else {
+          el.style.display = "none";
+        }
+      }
+    }
+
+    function expand(o) {
+       t = typeof(o);
+
+       if (t === "object") {
+         s = "{"
+         for (p in o) {
+           s += p + ':' + expand(o[p]) + ',';
+         }
+         return s + "}";
+       } else if (t === "string") {
+         return '"' + o + '"';
+       } else {
+         return o;
+       }
+    }
+
+    function ele(name, content) {
+      var e = document.createElement(name);
+      var t = typeof(content);
+      if (t === "string") {
+	e.appendChild(document.createTextNode(content));
+      } else if (t != "undefined") {
+        e.appendChild(content);
+      }
+
+      return e;
+    }
+      
+    function getTag(node, name) {
+    	return node.getElementsByTagName(name).item(0);
+    }
+
+    function getTags(node, name) {
+        return node.getElementsByTagName(name);
+    }
+
+    function getText(node, tag) {
+        if (tag !== undefined) {
+          node = getTag(node, tag);
+          if (!node) {
+          	return "";
+          }
+        }
+
+	if (node.firstChild) {
+    		return node.firstChild.nodeValue;
+	} else {
+		return node.nodeValue;
+	}
+    }
+
+    // Process returned DOM feed to display data.
+    function showResults(result) {
+      showOneSection('main');
+
+      var ul = ele('ul');
+      ul.className = 'block-list';
+
+      list = getTags(result, 'entry');
+
+      for(var i = 0; i < list.length; i++) {
+        entry = list.item(i);
+
+	var a = ele('a');
+	a.setAttribute('href', getTag(entry, 'link').getAttribute('href'));
+	a.setAttribute('target', '_new');
+	a.appendChild(ele('b', getText(getTag(entry, 'author'), 'name')));
+	a.appendChild(document.createTextNode(' - ' + getText(entry, 'title')));
+
+	/*
+	var summary = getTag(entry, 'summary');
+	if (summary) {
+	  a.appendChild(ele('br'));
+	  a.appendChild(document.createTextNode(getText(summary)));
+	}
+	*/
+	ul.appendChild(ele('li', a));
+      }
+
+      main.appendChild(ul);
+    }
+
+	// fetch data (and process auth request if needed)
+    function fetchData() {
+      var params = {};
+      url = "https://mail.google.com/mail/feed/atom";
+      params[gadgets.io.RequestParameters.CONTENT_TYPE] = gadgets.io.ContentType.DOM;
+      params[gadgets.io.RequestParameters.NUM_ENTRIES] = new Number(entries);
+      params[gadgets.io.RequestParameters.GET_SUMMARIES] = summaries;
+      params[gadgets.io.RequestParameters.AUTHORIZATION] = gadgets.io.AuthorizationType.OAUTH;
+      params[gadgets.io.RequestParameters.OAUTH_SERVICE_NAME] = "google";
+      params[gadgets.io.RequestParameters.OAUTH_USE_TOKEN] = "always";
+      params[gadgets.io.RequestParameters.METHOD] = gadgets.io.MethodType.GET;
+
+      gadgets.io.makeRequest(url, function (response) { 
+        if (response.oauthApprovalUrl) {
+          var popup = shindig.oauth.popup({
+            destination: response.oauthApprovalUrl,
+            windowOptions: null,
+            onOpen: function() { showOneSection('waiting'); },
+            onClose: function() { fetchData(); }
+          });
+          var personalize = document.getElementById('personalize');
+          personalize.onclick = popup.createOpenerOnClick();
+          var approvaldone = document.getElementById('approvaldone');
+          approvaldone.onclick = popup.createApprovedOnClick();
+          showOneSection('approval');
+        } else if (response.data) {
+          showResults(response.data);
+        } else {
+          // The response.oauthError and response.oauthErrorText values may help debug
+          // problems with your gadget.
+          var main = document.getElementById('main');
+          var err = document.createTextNode('OAuth error: ' +
+            response.oauthError + ': ' + response.oauthErrorText);
+          main.appendChild(err);
+          showOneSection('main');
+        }
+      }, params);
+    }
+    // Call fetchData() when gadget loads.
+    gadgets.util.registerOnLoadHandler(fetchData);
+  </script>
+  ]]> 
+  </Content>
+</Module>
