@@ -21,7 +21,7 @@
   <![CDATA[ 
  
   <!-- shindig oauth popup handling code -->
-  <script src="http://aromatic.org/google/popup.js"></script>
+  <script src="./popup.js"></script>
 
   <style>
   #main {
