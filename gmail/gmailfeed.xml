@@ -152,6 +152,7 @@
 
 	var a = ele('a');
 	a.setAttribute('href', getTag(entry, 'link').getAttribute('href'));
+	a.setAttribute('title', getText(entry, 'issued') + "\n" + getText(entry, 'summary'));
 	a.setAttribute('target', '_new');
 	a.appendChild(ele('b', getText(getTag(entry, 'author'), 'name')));
 	a.appendChild(document.createTextNode(' - ' + getText(entry, 'title')));
