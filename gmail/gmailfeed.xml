@@ -47,8 +47,7 @@
 
   li {
     border-bottom: dotted 1px;
-    padding-bottom: 2px;
-    padding-left: 3px;
+    padding: 4px 2px 4px 6px;
   }
   </style>
 
