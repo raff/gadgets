@@ -21,7 +21,7 @@
   <![CDATA[ 
  
   <!-- shindig oauth popup handling code -->
-  <script src="https://raw.githubusercontent.com/raff/gadgets/master/gmail/gmailfeed.xml"></script>
+  <script src="https://raw.githubusercontent.com/raff/gadgets/master/gmail/popup.js"></script>
 
   <style>
   #main {
